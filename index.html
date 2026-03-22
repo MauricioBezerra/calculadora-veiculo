@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Custo — Veículo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fafbfc; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+
+/* ═══ FIPE DATABASE — Mar/2026 ═══ */
+const DB = [
+  // CHEVROLET
+  {b:"Chevrolet",m:"Onix 1.0",y:2026,p:82783},{b:"Chevrolet",m:"Onix 1.0 Turbo",y:2026,p:95546},{b:"Chevrolet",m:"Onix 1.0 Turbo LT Auto",y:2026,p:99950},
+  {b:"Chevrolet",m:"Onix 1.0 Turbo LTZ Auto",y:2026,p:105838},{b:"Chevrolet",m:"Onix 1.0 Turbo RS Auto",y:2026,p:109878},{b:"Chevrolet",m:"Onix 1.0 Turbo Premier Auto",y:2026,p:119346},
+  {b:"Chevrolet",m:"Onix Plus 1.0 Turbo",y:2026,p:101500},{b:"Chevrolet",m:"Onix Plus 1.0 Turbo LT Auto",y:2026,p:106200},{b:"Chevrolet",m:"Onix Plus 1.0 Turbo Premier Auto",y:2026,p:125800},
+  {b:"Chevrolet",m:"Tracker 1.0 Turbo",y:2026,p:114659},{b:"Chevrolet",m:"Tracker 1.0 Turbo LT Auto",y:2026,p:134500},{b:"Chevrolet",m:"Tracker 1.0 Turbo Premier Auto",y:2026,p:162748},
+  {b:"Chevrolet",m:"Spin 1.8 LT Auto",y:2026,p:118500},{b:"Chevrolet",m:"Spin 1.8 Premier Auto",y:2026,p:130200},
+  {b:"Chevrolet",m:"Onix 1.0 Turbo",y:2025,p:78500},{b:"Chevrolet",m:"Onix 1.0 Turbo LT Auto",y:2025,p:85400},{b:"Chevrolet",m:"Onix 1.0 Turbo Premier Auto",y:2025,p:100889},
+  {b:"Chevrolet",m:"Tracker 1.0 Turbo",y:2025,p:102300},{b:"Chevrolet",m:"Tracker 1.0 Turbo Premier Auto",y:2025,p:142500},
+  {b:"Chevrolet",m:"Onix 1.0 Turbo",y:2024,p:72100},{b:"Chevrolet",m:"Onix 1.0 Turbo LT Auto",y:2024,p:78900},{b:"Chevrolet",m:"Tracker 1.0 Turbo",y:2024,p:95600},
+  {b:"Chevrolet",m:"Onix 1.0 Turbo",y:2023,p:65800},{b:"Chevrolet",m:"Onix 1.0 Turbo LT Auto",y:2023,p:72500},{b:"Chevrolet",m:"Tracker 1.0 Turbo",y:2023,p:88200},
+  {b:"Chevrolet",m:"Onix 1.0 Turbo",y:2022,p:60200},{b:"Chevrolet",m:"Tracker 1.0 Turbo",y:2022,p:82500},
+  // FIAT
+  {b:"Fiat",m:"Mobi 1.0 Like",y:2026,p:65587},{b:"Fiat",m:"Mobi 1.0 Trekking",y:2026,p:70217},
+  {b:"Fiat",m:"Argo 1.0",y:2026,p:77212},{b:"Fiat",m:"Argo Drive 1.3 CVT",y:2026,p:93852},{b:"Fiat",m:"Argo Trekking 1.3 CVT",y:2026,p:99069},
+  {b:"Fiat",m:"Cronos 1.0",y:2026,p:82500},{b:"Fiat",m:"Cronos Drive 1.3 CVT",y:2026,p:96800},{b:"Fiat",m:"Cronos Precision 1.3 CVT",y:2026,p:105400},
+  {b:"Fiat",m:"Pulse Drive 1.3 CVT",y:2026,p:107500},{b:"Fiat",m:"Pulse Audace 1.0T CVT",y:2026,p:119800},{b:"Fiat",m:"Pulse Impetus 1.0T CVT",y:2026,p:131500},
+  {b:"Fiat",m:"Fastback Audace 1.0T CVT",y:2026,p:128900},{b:"Fiat",m:"Fastback Impetus 1.0T CVT",y:2026,p:148500},{b:"Fiat",m:"Fastback Limited 1.3T CVT",y:2026,p:162000},
+  {b:"Fiat",m:"Strada Endurance 1.3",y:2026,p:95800},{b:"Fiat",m:"Strada Freedom 1.3",y:2026,p:105200},{b:"Fiat",m:"Strada Volcano 1.3 CVT",y:2026,p:126400},
+  {b:"Fiat",m:"Toro Endurance 1.3T Auto",y:2026,p:148500},{b:"Fiat",m:"Toro Freedom 1.3T Auto",y:2026,p:162000},{b:"Fiat",m:"Toro Ultra 1.3T Auto",y:2026,p:176500},
+  {b:"Fiat",m:"Argo 1.0",y:2025,p:68900},{b:"Fiat",m:"Argo Drive 1.3 CVT",y:2025,p:82500},{b:"Fiat",m:"Pulse Drive 1.3 CVT",y:2025,p:96500},
+  {b:"Fiat",m:"Argo 1.0",y:2024,p:62300},{b:"Fiat",m:"Pulse Drive 1.3 CVT",y:2024,p:88500},
+  {b:"Fiat",m:"Argo 1.0",y:2023,p:57800},{b:"Fiat",m:"Pulse Drive 1.3 CVT",y:2023,p:82000},
+  {b:"Fiat",m:"Argo 1.0",y:2022,p:54200},{b:"Fiat",m:"Pulse Drive 1.3 CVT",y:2022,p:76500},
+  // VOLKSWAGEN
+  {b:"Volkswagen",m:"Polo 1.0 MPI",y:2026,p:86500},{b:"Volkswagen",m:"Polo 1.0 TSI",y:2026,p:98700},{b:"Volkswagen",m:"Polo 1.0 TSI Highline Auto",y:2026,p:112400},
+  {b:"Volkswagen",m:"Virtus 1.0 TSI",y:2026,p:102500},{b:"Volkswagen",m:"Virtus 1.0 TSI Highline Auto",y:2026,p:118900},{b:"Volkswagen",m:"Virtus 1.0 TSI Exclusive Auto",y:2026,p:126800},
+  {b:"Volkswagen",m:"T-Cross 1.0 TSI",y:2026,p:118500},{b:"Volkswagen",m:"T-Cross 1.0 TSI Highline Auto",y:2026,p:142000},{b:"Volkswagen",m:"T-Cross 1.4 TSI Exclusive Auto",y:2026,p:165800},
+  {b:"Volkswagen",m:"Nivus 1.0 TSI",y:2026,p:116200},{b:"Volkswagen",m:"Nivus 1.0 TSI Highline Auto",y:2026,p:135800},{b:"Volkswagen",m:"Nivus 1.0 TSI Exclusive Auto",y:2026,p:146500},
+  {b:"Volkswagen",m:"Polo 1.0 TSI",y:2025,p:86500},{b:"Volkswagen",m:"T-Cross 1.0 TSI",y:2025,p:105800},{b:"Volkswagen",m:"Nivus 1.0 TSI",y:2025,p:104200},
+  {b:"Volkswagen",m:"Polo 1.0 TSI",y:2024,p:78200},{b:"Volkswagen",m:"T-Cross 1.0 TSI",y:2024,p:96500},
+  {b:"Volkswagen",m:"Polo 1.0 TSI",y:2023,p:72100},{b:"Volkswagen",m:"T-Cross 1.0 TSI",y:2023,p:89500},
+  {b:"Volkswagen",m:"Polo 1.0 TSI",y:2022,p:66800},{b:"Volkswagen",m:"T-Cross 1.0 TSI",y:2022,p:84200},
+  // BYD
+  {b:"BYD",m:"Dolphin Mini (Elétrico)",y:2026,p:75900},{b:"BYD",m:"Dolphin EV (Elétrico)",y:2026,p:149900},{b:"BYD",m:"Dolphin Plus EV (Elétrico)",y:2026,p:169900},
+  {b:"BYD",m:"Song Plus DM-i (Híbrido)",y:2026,p:189900},{b:"BYD",m:"Song Pro DM-i (Híbrido)",y:2026,p:159900},
+  {b:"BYD",m:"King DM-i (Híbrido)",y:2026,p:155900},{b:"BYD",m:"King GL DM-i (Híbrido)",y:2026,p:185900},
+  {b:"BYD",m:"Seal EV (Elétrico)",y:2026,p:239900},{b:"BYD",m:"Yuan Plus EV (Elétrico)",y:2026,p:179900},
+  {b:"BYD",m:"Dolphin Mini (Elétrico)",y:2025,p:72900},{b:"BYD",m:"Dolphin EV (Elétrico)",y:2025,p:139900},{b:"BYD",m:"Song Plus DM-i (Híbrido)",y:2025,p:179900},
+  {b:"BYD",m:"Dolphin EV (Elétrico)",y:2024,p:125000},{b:"BYD",m:"Song Plus DM-i (Híbrido)",y:2024,p:165000},
+  // HYUNDAI
+  {b:"Hyundai",m:"HB20 1.0",y:2026,p:82500},{b:"Hyundai",m:"HB20 1.0 Turbo",y:2026,p:96800},{b:"Hyundai",m:"HB20 1.0 Turbo Diamond Auto",y:2026,p:112500},
+  {b:"Hyundai",m:"HB20S 1.0 Turbo",y:2026,p:102300},{b:"Hyundai",m:"HB20S 1.0 Turbo Diamond Auto",y:2026,p:118900},
+  {b:"Hyundai",m:"Creta 1.0 Turbo",y:2026,p:128500},{b:"Hyundai",m:"Creta 1.0T Limited Auto",y:2026,p:148900},{b:"Hyundai",m:"Creta 1.0T Ultimate Auto",y:2026,p:168500},
+  {b:"Hyundai",m:"HB20 1.0 Turbo",y:2025,p:84500},{b:"Hyundai",m:"Creta 1.0 Turbo",y:2025,p:115200},
+  {b:"Hyundai",m:"HB20 1.0 Turbo",y:2024,p:76800},{b:"Hyundai",m:"Creta 1.0 Turbo",y:2024,p:105800},
+  {b:"Hyundai",m:"HB20 1.0 Turbo",y:2023,p:70500},{b:"Hyundai",m:"Creta 1.0 Turbo",y:2023,p:98500},
+  {b:"Hyundai",m:"HB20 1.0 Turbo",y:2022,p:65200},{b:"Hyundai",m:"Creta 1.6",y:2022,p:92500},
+  // TOYOTA
+  {b:"Toyota",m:"Yaris 1.5 XL",y:2026,p:98500},{b:"Toyota",m:"Yaris 1.5 XS Auto",y:2026,p:112800},{b:"Toyota",m:"Yaris 1.5 XLS Auto",y:2026,p:125600},
+  {b:"Toyota",m:"Yaris Sedan 1.5 XL",y:2026,p:103200},{b:"Toyota",m:"Yaris Sedan 1.5 XLS Auto",y:2026,p:128500},
+  {b:"Toyota",m:"Corolla 2.0 GLi Auto",y:2026,p:152000},{b:"Toyota",m:"Corolla 2.0 XEi Auto",y:2026,p:168500},{b:"Toyota",m:"Corolla 1.8 Altis Híbrido",y:2026,p:195800},
+  {b:"Toyota",m:"Corolla Cross 2.0 XRE Auto",y:2026,p:172500},{b:"Toyota",m:"Corolla Cross 2.0 XRX Auto",y:2026,p:192800},{b:"Toyota",m:"Corolla Cross 1.8 Híbrido",y:2026,p:218500},
+  {b:"Toyota",m:"Yaris Cross 1.5 XL",y:2026,p:142500},{b:"Toyota",m:"Yaris Cross 1.5 XLS Auto",y:2026,p:165800},
+  {b:"Toyota",m:"Corolla 2.0 GLi Auto",y:2025,p:138500},{b:"Toyota",m:"Corolla Cross 2.0 XRE Auto",y:2025,p:158200},
+  {b:"Toyota",m:"Corolla 2.0 GLi Auto",y:2024,p:128500},{b:"Toyota",m:"Corolla Cross 2.0 XRE Auto",y:2024,p:146500},
+  {b:"Toyota",m:"Corolla 2.0 GLi Auto",y:2023,p:118200},{b:"Toyota",m:"Corolla Cross 2.0 XRE Auto",y:2023,p:135800},
+  {b:"Toyota",m:"Corolla 2.0 GLi Auto",y:2022,p:108500},{b:"Toyota",m:"Corolla Cross 2.0 XRE Auto",y:2022,p:126200},
+  // HONDA
+  {b:"Honda",m:"City 1.5 EX Auto",y:2026,p:118500},{b:"Honda",m:"City 1.5 EXL Auto",y:2026,p:128900},{b:"Honda",m:"City 1.5 Touring Auto",y:2026,p:142500},
+  {b:"Honda",m:"City Hatch 1.5 EXL Auto",y:2026,p:126200},{b:"Honda",m:"City Hatch 1.5 Touring Auto",y:2026,p:138700},
+  {b:"Honda",m:"HR-V 1.5 EX Auto",y:2026,p:155993},{b:"Honda",m:"HR-V 1.5 EXL Auto",y:2026,p:172500},{b:"Honda",m:"HR-V 1.5 Touring Auto",y:2026,p:187454},
+  {b:"Honda",m:"Civic 2.0 Híbrido Auto",y:2026,p:223108},
+  {b:"Honda",m:"ZR-V 2.0 EXL Auto",y:2026,p:218500},{b:"Honda",m:"ZR-V 2.0 Touring Auto",y:2026,p:242800},
+  {b:"Honda",m:"WR-V 1.5 EX Auto",y:2026,p:108500},{b:"Honda",m:"WR-V 1.5 EXL Auto",y:2026,p:118200},
+  {b:"Honda",m:"City 1.5 EX Auto",y:2025,p:108500},{b:"Honda",m:"HR-V 1.5 EX Auto",y:2025,p:138200},{b:"Honda",m:"HR-V 1.5 Touring Auto",y:2025,p:168500},
+  {b:"Honda",m:"City 1.5 EX Auto",y:2024,p:98200},{b:"Honda",m:"HR-V 1.5 EX Auto",y:2024,p:125800},
+  {b:"Honda",m:"City 1.5 EX Auto",y:2023,p:89500},{b:"Honda",m:"HR-V 1.5 EX Auto",y:2023,p:115200},
+  {b:"Honda",m:"City 1.5 EX Auto",y:2022,p:82500},{b:"Honda",m:"HR-V 1.5 EX Auto",y:2022,p:105800},
+  // PEUGEOT
+  {b:"Peugeot",m:"208 Like 1.0",y:2026,p:82500},{b:"Peugeot",m:"208 Style 1.0 Turbo Auto",y:2026,p:98200},{b:"Peugeot",m:"208 Allure 1.0 Turbo Auto",y:2026,p:105800},{b:"Peugeot",m:"208 GT 1.0 Turbo Auto",y:2026,p:118500},
+  {b:"Peugeot",m:"2008 Style 1.0 Turbo Auto",y:2026,p:118900},{b:"Peugeot",m:"2008 Allure 1.0 Turbo Auto",y:2026,p:132500},{b:"Peugeot",m:"2008 GT 1.0 Turbo Auto",y:2026,p:148200},
+  {b:"Peugeot",m:"2008 1.6 Híbrido Auto",y:2026,p:178500},
+  {b:"Peugeot",m:"208 Like 1.0",y:2025,p:72500},{b:"Peugeot",m:"208 Allure 1.0 Turbo Auto",y:2025,p:92800},{b:"Peugeot",m:"2008 Allure 1.0 Turbo Auto",y:2025,p:118500},
+  {b:"Peugeot",m:"208 Like 1.0",y:2024,p:65200},{b:"Peugeot",m:"208 Allure 1.0 Turbo Auto",y:2024,p:84500},{b:"Peugeot",m:"2008 Allure 1.0 Turbo Auto",y:2024,p:108200},
+  {b:"Peugeot",m:"208 Like 1.0",y:2023,p:58900},{b:"Peugeot",m:"2008 Allure 1.0 Turbo Auto",y:2023,p:98500},
+  {b:"Peugeot",m:"208 Like 1.0",y:2022,p:54200},{b:"Peugeot",m:"2008 Allure 1.0 Turbo Auto",y:2022,p:89800},
+  // NISSAN
+  {b:"Nissan",m:"Kicks 1.6 Sense",y:2026,p:108500},{b:"Nissan",m:"Kicks 1.6 Advance Auto",y:2026,p:122800},{b:"Nissan",m:"Kicks 1.6 Exclusive Auto",y:2026,p:138500},
+  {b:"Nissan",m:"Versa 1.6 Sense",y:2026,p:108971},{b:"Nissan",m:"Versa 1.6 Advance Auto",y:2026,p:118500},{b:"Nissan",m:"Versa 1.6 Exclusive Auto",y:2026,p:126870},
+  {b:"Nissan",m:"Sentra 2.0 Advance Auto",y:2026,p:142500},{b:"Nissan",m:"Sentra 2.0 Exclusive Auto",y:2026,p:158900},
+  {b:"Nissan",m:"Frontier 2.3 Attack 4x4 Auto",y:2026,p:215800},{b:"Nissan",m:"Frontier 2.3 X-Gear 4x4 Auto",y:2026,p:248500},
+  {b:"Nissan",m:"Kicks 1.6 Sense",y:2025,p:96500},{b:"Nissan",m:"Kicks 1.6 Exclusive Auto",y:2025,p:122800},{b:"Nissan",m:"Versa 1.6 Sense",y:2025,p:96200},
+  {b:"Nissan",m:"Kicks 1.6 Sense",y:2024,p:88200},{b:"Nissan",m:"Kicks 1.6 Exclusive Auto",y:2024,p:112500},{b:"Nissan",m:"Versa 1.6 Sense",y:2024,p:86800},
+  {b:"Nissan",m:"Kicks 1.6 Sense",y:2023,p:82500},{b:"Nissan",m:"Versa 1.6 Sense",y:2023,p:78500},
+  {b:"Nissan",m:"Kicks 1.6 Sense",y:2022,p:76800},{b:"Nissan",m:"Versa 1.6 Sense",y:2022,p:72200},
+];
+
+const BRANDS = [...new Set(DB.map(v => v.b))].sort();
+
+/* ═══ Helpers ═══ */
+const fmt = v => v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmtS = v => {if(Math.abs(v)>=1e6)return`R$${(v/1e6).toFixed(1).replace(".",",")}M`;if(Math.abs(v)>=1e3)return`R$${(v/1e3).toFixed(1).replace(".",",")}k`;return fmt(v)};
+const fBR = (n,d=0) => Number(n).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pBR = s => {if(!s)return 0;const n=parseFloat(s.replace(/\./g,"").replace(",","."));return isNaN(n)?0:n};
+
+/* ═══ Atoms ═══ */
+function Fd({label,value,onChange,prefix="R$",suffix,decimals=0,min=0,max}){
+  const [f,sF]=useState(false);const [r,sR]=useState("");
+  return(<div><label style={{display:"block",fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--d)",marginBottom:5}}>{label}</label>
+  <div style={{display:"flex",alignItems:"center",background:"var(--f)",borderRadius:6,border:`1px solid ${f?"var(--a)":"var(--l)"}`,padding:"7px 10px",gap:5,transition:"border-color .15s"}}>
+  {prefix&&<span style={{fontSize:11,color:"var(--d)",fontWeight:600,flexShrink:0}}>{prefix}</span>}
+  <input type="text" inputMode="decimal" value={f?r:fBR(value,decimals)} onFocus={()=>{sF(true);sR(decimals>0?value.toString().replace(".",","):value.toString())}} onBlur={()=>{sF(false);let p=pBR(r);if(min!=null)p=Math.max(min,p);if(max!=null)p=Math.min(max,p);onChange(p)}} onChange={e=>sR(e.target.value)} style={{flex:1,border:"none",background:"transparent",outline:"none",fontSize:14,fontWeight:600,color:"var(--t)",fontFamily:"var(--mo)",width:"100%",minWidth:0}}/>
+  {suffix&&<span style={{fontSize:10,color:"var(--d)",fontWeight:600,flexShrink:0}}>{suffix}</span>}</div></div>);
+}
+function Sl({label,value,onChange,options,placeholder,disabled}){
+  return(<div><label style={{display:"block",fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--d)",marginBottom:5}}>{label}</label>
+  <select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} style={{width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid var(--l)",background:"var(--f)",color:value?"var(--t)":"var(--d)",fontSize:13,fontWeight:600,fontFamily:"var(--s)",outline:"none",cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1}}>
+  <option value="">{placeholder}</option>{options.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select></div>);
+}
+function Tg({label,checked,onChange,hint}){
+  return(<label style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",userSelect:"none"}}><span onClick={()=>onChange(!checked)} style={{width:36,height:20,borderRadius:10,flexShrink:0,marginTop:1,background:checked?"var(--a)":"var(--l)",position:"relative",transition:"background .2s",cursor:"pointer"}}><span style={{width:14,height:14,borderRadius:7,background:"#fff",position:"absolute",top:3,left:checked?19:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.15)"}}/></span><span><span style={{fontSize:12,fontWeight:600,color:"var(--t)",display:"block",lineHeight:1.3}}>{label}</span>{hint&&<span style={{fontSize:10.5,color:"var(--d)",lineHeight:1.4,display:"block",marginTop:2}}>{hint}</span>}</span></label>);
+}
+function Sli({label,value,onChange,min=50,max=100,step=5}){
+  return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}><span style={{fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--d)"}}>{label}</span><span style={{fontSize:14,fontWeight:700,color:"var(--t)",fontFamily:"var(--mo)"}}>{value}%</span></div><input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:"var(--a)",height:4,cursor:"pointer"}}/><div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--d)",marginTop:2}}><span>{min}%</span><span>{max}%</span></div></div>);
+}
+function Sec({title,color,children,open:dO=true}){const [o,sO]=useState(dO);return(<div style={{background:"var(--c)",borderRadius:10,border:"1px solid var(--l)",overflow:"hidden"}}><button onClick={()=>sO(!o)} style={{width:"100%",padding:"13px 18px",display:"flex",alignItems:"center",gap:8,borderBottom:o?"1px solid var(--l)":"none",background:"transparent",border:"none",cursor:"pointer",color:"var(--t)"}}><div style={{width:4,height:16,borderRadius:2,background:color,flexShrink:0}}/><span style={{fontSize:13,fontWeight:700,flex:1,textAlign:"left"}}>{title}</span><span style={{fontSize:13,color:"var(--d)",transform:o?"rotate(180deg)":"rotate(0)",transition:"transform .2s"}}>▾</span></button>{o&&<div style={{padding:"16px 18px"}}>{children}</div>}</div>);}
+function YS({years,setYears}){return(<div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"center"}}>{[1,2,3,4,5,6,7,8].map(y=>(<button key={y} onClick={()=>setYears(y)} style={{padding:"7px 13px",borderRadius:6,fontWeight:700,fontSize:12,border:years===y?"1.5px solid var(--a)":"1px solid var(--l)",background:years===y?"var(--a)":"var(--c)",color:years===y?"#fff":"var(--d)",cursor:"pointer",transition:"all .12s",minWidth:40,fontFamily:"var(--s)"}}>{y}a</button>))}</div>);}
+
+/* ═══ Vehicle Picker ═══ */
+function VehiclePicker({onSelect}){
+  const [brand,setBrand]=useState("");const [model,setModel]=useState("");const [year,setYear]=useState("");const [applied,setApplied]=useState(false);
+  const models=useMemo(()=>{if(!brand)return[];return[...new Set(DB.filter(v=>v.b===brand).map(v=>v.m))].sort()},[brand]);
+  const years=useMemo(()=>{if(!brand||!model)return[];return[...new Set(DB.filter(v=>v.b===brand&&v.m===model).map(v=>v.y))].sort((a,b)=>b-a)},[brand,model]);
+  const selected=useMemo(()=>{if(!brand||!model||!year)return null;return DB.find(v=>v.b===brand&&v.m===model&&v.y===Number(year))||null},[brand,model,year]);
+
+  const handleBrand=v=>{setBrand(v);setModel("");setYear("");setApplied(false)};
+  const handleModel=v=>{setModel(v);setYear("");setApplied(false)};
+  const handleYear=v=>{setYear(v);setApplied(false)};
+  const handleApply=()=>{if(selected){onSelect(selected.p);setApplied(true)}};
+
+  return(
+    <div style={{background:"var(--f)",borderRadius:8,padding:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+        <div style={{width:20,height:20,borderRadius:4,background:"var(--a)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <span style={{fontSize:12,fontWeight:700,color:"var(--t)"}}>Selecionar veículo — Tabela FIPE (Mar/2026)</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr",gap:10}}>
+        <Sl label="Marca" value={brand} onChange={handleBrand} options={BRANDS.map(b=>({v:b,l:b}))} placeholder="Selecione"/>
+        <Sl label="Modelo / Versão" value={model} onChange={handleModel} options={models.map(m=>({v:m,l:m}))} placeholder={brand?"Selecione":"—"} disabled={!brand}/>
+        <Sl label="Ano" value={year} onChange={handleYear} options={years.map(y=>({v:String(y),l:String(y)}))} placeholder={model?"Selecione":"—"} disabled={!model}/>
+      </div>
+      {selected&&(
+        <div style={{marginTop:14,padding:"14px 16px",background:"var(--c)",borderRadius:8,border:"1px solid var(--l)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--t)"}}>{selected.b} {selected.m}</div>
+              <div style={{fontSize:11,color:"var(--d)",marginTop:2}}>Ano {selected.y} · Ref. FIPE Março/2026</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2}}>Preço FIPE</div>
+              <div style={{fontSize:22,fontWeight:700,color:"var(--a)",fontFamily:"var(--mo)"}}>{fmt(selected.p)}</div>
+            </div>
+          </div>
+          <button onClick={handleApply} disabled={applied} style={{marginTop:12,width:"100%",padding:"10px",borderRadius:6,border:"none",background:applied?"#1a7f5a":"var(--a)",color:"#fff",fontSize:12,fontWeight:700,cursor:applied?"default":"pointer",fontFamily:"var(--s)",transition:"background .2s"}}>
+            {applied?"✓ Preço aplicado na simulação":"Usar este preço na simulação"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══ Result / Charts ═══ */
+function RC({label,monthly,gross,net,resale,showR,color,isBest,diff,years}){
+  return(<div style={{background:isBest?`${color}0c`:"var(--c)",borderRadius:10,border:isBest?`2px solid ${color}`:"1px solid var(--l)",padding:isBest?"18px 20px":"16px 18px",position:"relative",boxShadow:isBest?`0 2px 12px ${color}18`:"none",transition:"all .2s"}}>
+    {isBest&&<div style={{position:"absolute",top:0,right:0,background:color,color:"#fff",fontSize:9,fontWeight:800,padding:"5px 12px 5px 14px",borderRadius:"0 8px 0 10px",letterSpacing:".05em",textTransform:"uppercase"}}>✦ Melhor opção</div>}
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><div style={{width:isBest?6:4,height:isBest?24:20,borderRadius:3,background:color}}/><span style={{fontSize:isBest?14:13,fontWeight:700}}>{label}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:resale>0&&showR?"1fr 1fr 1fr":"1fr 1fr",gap:12}}>
+      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Mensal</div><div style={{fontSize:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(monthly)}</div></div>
+      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Desembolso {years}a</div><div style={{fontSize:20,fontWeight:700,color:"var(--t)",fontFamily:"var(--mo)"}}>{fmt(gross)}</div></div>
+      {resale>0&&showR&&<div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Líquido</div><div style={{fontSize:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(net)}</div><div style={{fontSize:9,color:"var(--d)",marginTop:2}}>revenda: −{fmt(resale)}</div></div>}
+    </div>
+    {diff>0&&!isBest&&<div style={{marginTop:12,fontSize:11,color:"#c4432b",fontWeight:600,opacity:.85}}>+{fmt(diff)} vs melhor opção em {years}a</div>}
+  </div>);
+}
+function BC({data,subtitle}){const mx=Math.max(...data.map(d=>d.value));return(<div>{subtitle&&<p style={{fontSize:10,color:"var(--d)",textAlign:"center",margin:"0 0 8px",fontStyle:"italic"}}>{subtitle}</p>}<div style={{display:"flex",alignItems:"flex-end",gap:24,height:170,padding:"8px 0"}}>{data.map((d,i)=>{const h=mx>0?(Math.max(0,d.value)/mx)*130:0;return(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><span style={{fontSize:11,fontWeight:700,color:d.best?d.color:"var(--t)",fontFamily:"var(--mo)"}}>{fmtS(d.value)}</span><div style={{width:"100%",maxWidth:56,height:h,borderRadius:"6px 6px 2px 2px",background:d.color,opacity:d.best?1:.5,transition:"height .4s ease"}}/><span style={{fontSize:10,fontWeight:600,color:"var(--d)",textTransform:"uppercase"}}>{d.label}</span></div>)})}</div></div>);}
+function TL({bD,uD,rD,months,sA,showR,C}){const mx=Math.max(bD[months]||0,uD[months]||0,rD[months]||0);if(mx===0)return null;const W=600,H=220,PL=48,PR=14,PT=14,PB=26,cW=W-PL-PR,cH=H-PT-PB;const tx=m=>PL+(m/months)*cW,ty=v=>PT+cH-(v/mx)*cH;const ms=Array.from({length:months+1},(_,i)=>i);const p=d=>ms.map((m,i)=>`${i===0?"M":"L"}${tx(m).toFixed(1)},${ty(d[m]).toFixed(1)}`).join(" ");const a=d=>p(d)+` L${tx(months).toFixed(1)},${ty(0).toFixed(1)} L${tx(0).toFixed(1)},${ty(0).toFixed(1)} Z`;const gr=Array.from({length:5},(_,i)=>(mx/4)*i);const ym=[];for(let y=12;y<=months;y+=12)ym.push(y);const bE=bD[months],bN=bE-sA;return(<svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}><defs>{[["aB",C.buy],["aU",C.uber],["aR",C.rent]].map(([id,c])=>(<linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity=".08"/><stop offset="100%" stopColor={c} stopOpacity="0"/></linearGradient>))}</defs>{gr.map((v,i)=>(<g key={i}><line x1={PL} x2={W-PR} y1={ty(v)} y2={ty(v)} stroke="var(--l)" strokeWidth={.5} strokeDasharray={i===0?"none":"3,4"}/><text x={PL-5} y={ty(v)+3} textAnchor="end" fontSize={7.5} fill="var(--d)" fontFamily="var(--mo)">{fmtS(v)}</text></g>))}{[0,...ym].map(m=>(<text key={m} x={tx(m)} y={H-5} textAnchor="middle" fontSize={8} fill="var(--d)" fontWeight="600">{m===0?"Hoje":`${m/12}a`}</text>))}<path d={a(uD)} fill="url(#aU)"/><path d={a(rD)} fill="url(#aR)"/><path d={a(bD)} fill="url(#aB)"/><path d={p(uD)} fill="none" stroke={C.uber} strokeWidth={2} strokeLinejoin="round"/><path d={p(rD)} fill="none" stroke={C.rent} strokeWidth={2} strokeLinejoin="round"/><path d={p(bD)} fill="none" stroke={C.buy} strokeWidth={2} strokeLinejoin="round"/>{showR&&sA>0&&(<g><line x1={tx(months)} y1={ty(bE)} x2={tx(months)} y2={ty(Math.max(0,bN))} stroke={C.buy} strokeWidth={1.5} strokeDasharray="3,3"/><circle cx={tx(months)} cy={ty(Math.max(0,bN))} r={3.5} fill={C.buy} stroke="var(--bg)" strokeWidth={1.5}/><text x={tx(months)-6} y={(ty(bE)+ty(Math.max(0,bN)))/2+3} textAnchor="end" fontSize={7} fill={C.buy} fontFamily="var(--mo)" fontWeight="600">−{fmtS(sA)}</text></g>)}<circle cx={tx(months)} cy={ty(bE)} r={3} fill={showR?`${C.buy}88`:C.buy} stroke="var(--bg)" strokeWidth={1.5}/><circle cx={tx(months)} cy={ty(uD[months])} r={3} fill={C.uber} stroke="var(--bg)" strokeWidth={1.5}/><circle cx={tx(months)} cy={ty(rD[months])} r={3} fill={C.rent} stroke="var(--bg)" strokeWidth={1.5}/></svg>);}
+function SB({best,others,years}){const mo=years*12;return(<div style={{borderRadius:8,border:"1px solid var(--l)",overflow:"hidden"}}><div style={{padding:"10px 16px",background:`${best.color}0a`,borderBottom:"1px solid var(--l)"}}><span style={{fontSize:11,fontWeight:700,color:best.color}}>Economia escolhendo {best.label}</span></div>{others.map(s=>(<div key={s.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--l)"}}><span style={{fontSize:12,fontWeight:600,color:"var(--d)"}}>vs {s.label}</span><div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:700,color:best.color,fontFamily:"var(--mo)"}}>{fmt(s.diff)}</span><span style={{fontSize:10,color:"var(--d)",marginLeft:6}}>({fmt(s.diff/mo)}/mês)</span></div></div>))}</div>);}
+function FD({carP,dp,fin,inst,fMo,tP,years}){const int=tP-fin;const ok=fMo<=years*12;const rem=Math.max(0,fMo-years*12);return(<div style={{background:"var(--f)",borderRadius:8,padding:"14px 16px",marginTop:12}}><div style={{fontSize:10,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Financiamento</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,fontSize:11}}>{[["Valor veículo",fmt(carP)],["Entrada",fmt(dp)],["Financiado",fmt(fin)],["Parcela",fmt(inst)],["Total pago",fmt(tP)],["Juros total",fmt(int),"#c4432b"]].map(([l,v,c],i)=>(<div key={i}><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",marginBottom:2}}>{l}</div><div style={{fontWeight:700,fontFamily:"var(--mo)",color:c||"var(--t)"}}>{v}</div></div>))}</div><div style={{marginTop:10,fontSize:11,fontWeight:600,color:ok?"#1a7f5a":"#9a6700",padding:"6px 10px",borderRadius:5,background:ok?"#ddf4e7":"#fff3cd"}}>{ok?`Quitado em ${fMo} meses — sem saldo residual`:`Excede horizonte — restam ${rem} parcelas`}</div></div>);}
+
+const CO={buy:"#1e3f6e",uber:"#2d3139",rent:"#c2710c"};
+
+/* ═══ APP ═══ */
+function App(){
+  const [years,sY]=useState(5);const M=years*12;const [showR,sSR]=useState(true);const [rPct,sRP]=useState(100);
+  const [uDay,sUD]=useState(60);const [uDays,sUDs]=useState(7);
+  const [carP,sCP]=useState(80000);const [dp,sDP]=useState(0);const [sv,sSV]=useState(20000);
+  const [fMo,sFM]=useState(36);const [fR,sFR]=useState(1.5);const [ipva,sI]=useState(2.4);const [ins,sIN]=useState(3500);
+  const [gas,sG]=useState(600);const [mnt,sM]=useState(200);const [prk,sP]=useState(0);const [dep,sD]=useState(10);
+  const [rMo,sRM]=useState(3000);const [rG,sRG]=useState(600);const [rI,sRI]=useState(0);
+
+  const res=useMemo(()=>{
+    const uMo=uDay*uDays*(30/7);const uTot=uMo*M;
+    const fin=Math.max(0,carP-dp);const r=fR/100;let inst=0;
+    if(fin>0&&fMo>0&&r>0)inst=fin*(r*Math.pow(1+r,fMo))/(Math.pow(1+r,fMo)-1);else if(fin>0&&fMo>0)inst=fin/fMo;
+    const tFP=inst*fMo;const iMo=ins/12;const resid=carP*Math.pow(1-dep/100,years);const sA=resid*(rPct/100);
+    const iPY=[];let tI=0;for(let y=0;y<years;y++){const v=carP*Math.pow(1-dep/100,y)*(ipva/100);iPY.push(v);tI+=v;}
+    const i1=iPY[0]||0;const bMo=inst+i1/12+iMo+gas+mnt+prk;
+    const iH=inst*Math.min(fMo,M);const fH=(iMo+gas+mnt+prk)*M;const eL=dp-sv;const gr=eL+iH+fH+tI;const nt=gr-sA;
+    const rMoT=rMo+rG+rI;const rTot=rMoT*M;
+    let iA=0;const iC=[];for(let m=0;m<=M;m++){if(m>0)iA+=(iPY[Math.min(Math.floor((m-1)/12),iPY.length-1)]||0)/12;iC[m]=iA;}
+    const bTL=[],uTL=[],rTL=[];for(let m=0;m<=M;m++){uTL[m]=uMo*m;rTL[m]=rMoT*m;bTL[m]=Math.max(0,eL)+inst*Math.min(m,fMo)+(iMo+gas+mnt+prk)*m+iC[m];}
+    return{uber:{mo:uMo,tot:uTot},buy:{mo:bMo,gr,nt,inst,fin,tFP,resid,sA,i1},rent:{mo:rMoT,tot:rTot},bTL,uTL,rTL};
+  },[uDay,uDays,carP,dp,sv,fMo,fR,ipva,ins,gas,mnt,prk,dep,rMo,rG,rI,years,M,rPct]);
+
+  const bC=showR?res.buy.nt:res.buy.gr;const b3=Math.min(bC,res.uber.tot,res.rent.tot);
+  const opts=[{key:"buy",label:"Comprar",total:bC,color:CO.buy},{key:"uber",label:"Uber",total:res.uber.tot,color:CO.uber},{key:"rent",label:"Alugar",total:res.rent.tot,color:CO.rent}].sort((a,b)=>a.total-b.total);
+  const bO=opts[0];const oth=opts.slice(1).map(o=>({...o,diff:o.total-bO.total}));
+  const bd=[{label:"Comprar",value:bC,color:CO.buy,best:bC===b3},{label:"Uber",value:res.uber.tot,color:CO.uber,best:res.uber.tot===b3},{label:"Alugar",value:res.rent.tot,color:CO.rent,best:res.rent.tot===b3}];
+
+  return(
+    <div style={{"--s":"'Inter',-apple-system,sans-serif","--mo":"'JetBrains Mono','SF Mono',monospace","--bg":"#fafbfc","--c":"#fff","--f":"#f4f5f7","--l":"#e1e4e8","--t":"#1f2328","--d":"#6e7781","--a":"#1e3f6e",fontFamily:"var(--s)",background:"var(--bg)",color:"var(--t)",minHeight:"100vh",padding:"24px 16px"}}>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+      <div style={{maxWidth:720,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <h1 style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em",marginBottom:4}}>Simulador de Custo — Veículo</h1>
+          <p style={{fontSize:12,color:"var(--d)",margin:"0 0 18px"}}>Compare comprar, usar Uber ou assinar um veículo</p>
+          <YS years={years} setYears={sY}/>
+        </div>
+        <div style={{display:"grid",gap:12,marginBottom:24}}>
+          <Sec title="Pesquisa de veículo — Tabela FIPE" color={CO.buy}>
+            <VehiclePicker onSelect={sCP}/>
+            <div style={{marginTop:12,padding:"10px 14px",background:"var(--f)",borderRadius:6,display:"flex",flexWrap:"wrap",gap:12,alignItems:"center"}}>
+              <span style={{fontSize:11,color:"var(--d)"}}>Consultar assinatura:</span>
+              {[["Localiza Meoo","https://www.localiza.com/brasil/pt-br/meoo"],["Movida","https://www.movidazerokm.com.br"],["Unidas","https://www.unidas.com.br/assinatura"]].map(([n,u])=>(<a key={n} href={u} target="_blank" rel="noopener noreferrer" style={{fontSize:11,fontWeight:700,color:CO.rent,textDecoration:"none"}}>{n} ↗</a>))}
+            </div>
+          </Sec>
+          <Sec title="Uber / App de transporte" color={CO.uber}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><Fd label="Gasto médio por dia" value={uDay} onChange={sUD}/><Fd label="Dias por semana" value={uDays} onChange={sUDs} prefix="" suffix="dias" min={1} max={7}/></div>
+            <div style={{marginTop:10,padding:"6px 12px",background:"var(--f)",borderRadius:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"var(--d)"}}>Estimativa mensal</span><span style={{fontSize:12,fontWeight:700,fontFamily:"var(--mo)",color:CO.uber}}>{fmt(res.uber.mo)}</span></div>
+          </Sec>
+          <Sec title="Comprar veículo" color={CO.buy}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <Fd label="Valor do veículo" value={carP} onChange={sCP}/><Fd label="Entrada (dinheiro)" value={dp} onChange={sDP}/>
+              <Fd label="Venda do carro atual" value={sv} onChange={sSV}/><Fd label="Nº de parcelas" value={fMo} onChange={sFM} prefix="" suffix="meses"/>
+              <Fd label="Juros mensal" value={fR} onChange={sFR} prefix="" suffix="% a.m." decimals={2}/><Fd label="IPVA (% valor venal)" value={ipva} onChange={sI} prefix="" suffix="% a.a." decimals={1}/>
+              <Fd label="Seguro anual" value={ins} onChange={sIN}/><Fd label="Gasolina mensal" value={gas} onChange={sG}/>
+              <Fd label="Manutenção mensal" value={mnt} onChange={sM}/><Fd label="Estacionamento mensal" value={prk} onChange={sP}/>
+              <Fd label="Depreciação anual" value={dep} onChange={sD} prefix="" suffix="% a.a."/>
+            </div>
+            <FD carP={carP} dp={dp} fin={res.buy.fin} inst={res.buy.inst} fMo={fMo} tP={res.buy.tFP} years={years}/>
+            <div style={{marginTop:10,padding:"8px 12px",background:"var(--f)",borderRadius:6,display:"flex",flexWrap:"wrap",gap:14,fontSize:11,fontFamily:"var(--mo)",fontWeight:600}}>
+              <span>IPVA 1º ano: <span style={{color:CO.buy}}>{fmt(res.buy.i1)}</span></span>
+              <span>Valor venal {years}a: <span style={{color:CO.buy}}>{fmt(res.buy.resid)}</span></span>
+            </div>
+          </Sec>
+          <Sec title="Aluguel / Assinatura de veículo" color={CO.rent}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><Fd label="Mensalidade" value={rMo} onChange={sRM}/><Fd label="Gasolina mensal" value={rG} onChange={sRG}/><Fd label="Seguro extra (mensal)" value={rI} onChange={sRI}/></div>
+            <div style={{marginTop:10,padding:"6px 12px",background:"var(--f)",borderRadius:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"var(--d)"}}>Custo mensal total</span><span style={{fontSize:12,fontWeight:700,fontFamily:"var(--mo)",color:CO.rent}}>{fmt(res.rent.mo)}</span></div>
+          </Sec>
+        </div>
+        {/* Results */}
+        <div style={{background:"var(--c)",borderRadius:12,border:"1px solid var(--l)",padding:"24px 20px"}}>
+          <h2 style={{fontSize:16,fontWeight:800,marginBottom:4,textAlign:"center",letterSpacing:"-0.02em"}}>Resultado — {years} {years===1?"ano":"anos"}</h2>
+          <p style={{fontSize:11,color:"var(--d)",textAlign:"center",margin:"0 0 16px"}}>{M} meses</p>
+          <div style={{background:"var(--f)",borderRadius:8,padding:"14px 16px",marginBottom:18}}>
+            <Tg label="Considerar revenda do veículo ao final" hint={showR?`Subtrai ${fmt(res.buy.sA)} (${rPct}% do valor venal depreciado)`:"Comparação usa apenas o desembolso bruto"} checked={showR} onChange={sSR}/>
+            {showR&&(<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--l)"}}><Sli label="Percentual de realização na revenda" value={rPct} onChange={sRP} min={50} max={100} step={5}/><div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:10,color:"var(--d)"}}><span>Valor venal em {years}a: {fmt(res.buy.resid)}</span><span>Revenda: <strong style={{color:CO.buy}}>{fmt(res.buy.sA)}</strong></span></div></div>)}
+          </div>
+          <div style={{display:"grid",gap:10,marginBottom:18}}>
+            <RC label="Comprar Veículo" monthly={res.buy.mo} gross={res.buy.gr} net={res.buy.nt} resale={res.buy.sA} showR={showR} color={CO.buy} isBest={bC===b3} diff={bC-b3} years={years}/>
+            <RC label="Uber / App" monthly={res.uber.mo} gross={res.uber.tot} net={res.uber.tot} resale={0} showR={false} color={CO.uber} isBest={res.uber.tot===b3} diff={res.uber.tot-b3} years={years}/>
+            <RC label="Aluguel / Assinatura" monthly={res.rent.mo} gross={res.rent.tot} net={res.rent.tot} resale={0} showR={false} color={CO.rent} isBest={res.rent.tot===b3} diff={res.rent.tot-b3} years={years}/>
+          </div>
+          <SB best={bO} others={oth} years={years}/>
+          <div style={{marginTop:18,borderRadius:8,border:"1px solid var(--l)",padding:"16px 18px"}}><h3 style={{fontSize:11,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2,textAlign:"center"}}>Comparativo em {years}a</h3><BC data={bd} subtitle={showR?"Custo líquido (desembolso − revenda)":"Desembolso bruto (sem revenda)"}/></div>
+          <div style={{marginTop:14,borderRadius:8,border:"1px solid var(--l)",padding:"16px 18px"}}><h3 style={{fontSize:11,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2,textAlign:"center"}}>Desembolso acumulado</h3><p style={{fontSize:10,color:"var(--d)",textAlign:"center",margin:"0 0 8px",fontStyle:"italic"}}>Linhas = saída de caixa{showR?" · Pontilhado = revenda":""}</p><div style={{display:"flex",justifyContent:"center",gap:18,marginBottom:6}}>{[["Comprar",CO.buy],["Uber",CO.uber],["Alugar",CO.rent]].map(([l,c])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:14,height:2.5,borderRadius:2,background:c}}/><span style={{fontSize:10,color:"var(--d)",fontWeight:600}}>{l}</span></div>))}</div><TL bD={res.bTL} uD={res.uTL} rD={res.rTL} months={M} sA={res.buy.sA} showR={showR} C={CO}/></div>
+          <p style={{marginTop:16,fontSize:9,color:"var(--d)",textAlign:"center",lineHeight:1.6}}>Financiamento: tabela Price. IPVA sobre valor venal depreciado.{showR?` Revenda = ${rPct}% do valor venal.`:""} Preços FIPE: referência Mar/2026 (amostra). Sem inflação ou custo de oportunidade.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
