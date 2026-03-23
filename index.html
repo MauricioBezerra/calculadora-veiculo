@@ -8,16 +8,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #fafbfc; }
-</style>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #fafbfc; }</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect, useCallback } = React;
 
+function useIsMobile(bp=640){const [m,sM]=useState(typeof window!=="undefined"&&window.innerWidth<bp);useEffect(()=>{const h=()=>sM(window.innerWidth<bp);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[bp]);return m;}
 
 /* ═══ FIPE DATABASE — Mar/2026 ═══ */
 const DB = [
@@ -141,6 +139,7 @@ function YS({years,setYears}){return(<div style={{display:"flex",gap:4,flexWrap:
 
 /* ═══ Vehicle Picker ═══ */
 function VehiclePicker({onSelect}){
+  const mob=useIsMobile();
   const [brand,setBrand]=useState("");const [model,setModel]=useState("");const [year,setYear]=useState("");const [applied,setApplied]=useState(false);
   const models=useMemo(()=>{if(!brand)return[];return[...new Set(DB.filter(v=>v.b===brand).map(v=>v.m))].sort()},[brand]);
   const years=useMemo(()=>{if(!brand||!model)return[];return[...new Set(DB.filter(v=>v.b===brand&&v.m===model).map(v=>v.y))].sort((a,b)=>b-a)},[brand,model]);
@@ -159,7 +158,7 @@ function VehiclePicker({onSelect}){
         </div>
         <span style={{fontSize:12,fontWeight:700,color:"var(--t)"}}>Selecionar veículo — Tabela FIPE (Mar/2026)</span>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr",gap:10}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 2fr 1fr",gap:10}}>
         <Sl label="Marca" value={brand} onChange={handleBrand} options={BRANDS.map(b=>({v:b,l:b}))} placeholder="Selecione"/>
         <Sl label="Modelo / Versão" value={model} onChange={handleModel} options={models.map(m=>({v:m,l:m}))} placeholder={brand?"Selecione":"—"} disabled={!brand}/>
         <Sl label="Ano" value={year} onChange={handleYear} options={years.map(y=>({v:String(y),l:String(y)}))} placeholder={model?"Selecione":"—"} disabled={!model}/>
@@ -186,14 +185,16 @@ function VehiclePicker({onSelect}){
 }
 
 /* ═══ Result / Charts ═══ */
-function RC({label,monthly,gross,net,resale,showR,color,isBest,diff,years}){
-  return(<div style={{background:isBest?`${color}0c`:"var(--c)",borderRadius:10,border:isBest?`2px solid ${color}`:"1px solid var(--l)",padding:isBest?"18px 20px":"16px 18px",position:"relative",boxShadow:isBest?`0 2px 12px ${color}18`:"none",transition:"all .2s"}}>
+function RC({label,monthly,gross,net,resale,showR,color,isBest,diff,years,mob}){
+  const showResaleCol=resale>0&&showR;
+  const cols=mob?"1fr 1fr":(showResaleCol?"1fr 1fr 1fr":"1fr 1fr");
+  return(<div style={{background:isBest?`${color}0c`:"var(--c)",borderRadius:10,border:isBest?`2px solid ${color}`:"1px solid var(--l)",padding:isBest?"18px 16px":"16px 14px",position:"relative",boxShadow:isBest?`0 2px 12px ${color}18`:"none",transition:"all .2s"}}>
     {isBest&&<div style={{position:"absolute",top:0,right:0,background:color,color:"#fff",fontSize:9,fontWeight:800,padding:"5px 12px 5px 14px",borderRadius:"0 8px 0 10px",letterSpacing:".05em",textTransform:"uppercase"}}>✦ Melhor opção</div>}
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><div style={{width:isBest?6:4,height:isBest?24:20,borderRadius:3,background:color}}/><span style={{fontSize:isBest?14:13,fontWeight:700}}>{label}</span></div>
-    <div style={{display:"grid",gridTemplateColumns:resale>0&&showR?"1fr 1fr 1fr":"1fr 1fr",gap:12}}>
-      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Mensal</div><div style={{fontSize:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(monthly)}</div></div>
-      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Desembolso {years}a</div><div style={{fontSize:20,fontWeight:700,color:"var(--t)",fontFamily:"var(--mo)"}}>{fmt(gross)}</div></div>
-      {resale>0&&showR&&<div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Líquido</div><div style={{fontSize:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(net)}</div><div style={{fontSize:9,color:"var(--d)",marginTop:2}}>revenda: −{fmt(resale)}</div></div>}
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:mob?10:14}}><div style={{width:isBest?6:4,height:isBest?24:20,borderRadius:3,background:color}}/><span style={{fontSize:isBest?14:13,fontWeight:700}}>{label}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:cols,gap:mob?8:12}}>
+      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Mensal</div><div style={{fontSize:mob?17:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(monthly)}</div></div>
+      <div><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Desembolso {years}a</div><div style={{fontSize:mob?17:20,fontWeight:700,color:"var(--t)",fontFamily:"var(--mo)"}}>{fmt(gross)}</div></div>
+      {showResaleCol&&<div style={mob?{gridColumn:"1 / -1"}:{}}><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:3}}>Líquido</div><div style={{fontSize:mob?17:20,fontWeight:700,color,fontFamily:"var(--mo)"}}>{fmt(net)}</div><div style={{fontSize:9,color:"var(--d)",marginTop:2}}>revenda: −{fmt(resale)}</div></div>}
     </div>
     {diff>0&&!isBest&&<div style={{marginTop:12,fontSize:11,color:"#c4432b",fontWeight:600,opacity:.85}}>+{fmt(diff)} vs melhor opção em {years}a</div>}
   </div>);
@@ -201,12 +202,13 @@ function RC({label,monthly,gross,net,resale,showR,color,isBest,diff,years}){
 function BC({data,subtitle}){const mx=Math.max(...data.map(d=>d.value));return(<div>{subtitle&&<p style={{fontSize:10,color:"var(--d)",textAlign:"center",margin:"0 0 8px",fontStyle:"italic"}}>{subtitle}</p>}<div style={{display:"flex",alignItems:"flex-end",gap:24,height:170,padding:"8px 0"}}>{data.map((d,i)=>{const h=mx>0?(Math.max(0,d.value)/mx)*130:0;return(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><span style={{fontSize:11,fontWeight:700,color:d.best?d.color:"var(--t)",fontFamily:"var(--mo)"}}>{fmtS(d.value)}</span><div style={{width:"100%",maxWidth:56,height:h,borderRadius:"6px 6px 2px 2px",background:d.color,opacity:d.best?1:.5,transition:"height .4s ease"}}/><span style={{fontSize:10,fontWeight:600,color:"var(--d)",textTransform:"uppercase"}}>{d.label}</span></div>)})}</div></div>);}
 function TL({bD,uD,rD,months,sA,showR,C}){const mx=Math.max(bD[months]||0,uD[months]||0,rD[months]||0);if(mx===0)return null;const W=600,H=220,PL=48,PR=14,PT=14,PB=26,cW=W-PL-PR,cH=H-PT-PB;const tx=m=>PL+(m/months)*cW,ty=v=>PT+cH-(v/mx)*cH;const ms=Array.from({length:months+1},(_,i)=>i);const p=d=>ms.map((m,i)=>`${i===0?"M":"L"}${tx(m).toFixed(1)},${ty(d[m]).toFixed(1)}`).join(" ");const a=d=>p(d)+` L${tx(months).toFixed(1)},${ty(0).toFixed(1)} L${tx(0).toFixed(1)},${ty(0).toFixed(1)} Z`;const gr=Array.from({length:5},(_,i)=>(mx/4)*i);const ym=[];for(let y=12;y<=months;y+=12)ym.push(y);const bE=bD[months],bN=bE-sA;return(<svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}><defs>{[["aB",C.buy],["aU",C.uber],["aR",C.rent]].map(([id,c])=>(<linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity=".08"/><stop offset="100%" stopColor={c} stopOpacity="0"/></linearGradient>))}</defs>{gr.map((v,i)=>(<g key={i}><line x1={PL} x2={W-PR} y1={ty(v)} y2={ty(v)} stroke="var(--l)" strokeWidth={.5} strokeDasharray={i===0?"none":"3,4"}/><text x={PL-5} y={ty(v)+3} textAnchor="end" fontSize={7.5} fill="var(--d)" fontFamily="var(--mo)">{fmtS(v)}</text></g>))}{[0,...ym].map(m=>(<text key={m} x={tx(m)} y={H-5} textAnchor="middle" fontSize={8} fill="var(--d)" fontWeight="600">{m===0?"Hoje":`${m/12}a`}</text>))}<path d={a(uD)} fill="url(#aU)"/><path d={a(rD)} fill="url(#aR)"/><path d={a(bD)} fill="url(#aB)"/><path d={p(uD)} fill="none" stroke={C.uber} strokeWidth={2} strokeLinejoin="round"/><path d={p(rD)} fill="none" stroke={C.rent} strokeWidth={2} strokeLinejoin="round"/><path d={p(bD)} fill="none" stroke={C.buy} strokeWidth={2} strokeLinejoin="round"/>{showR&&sA>0&&(<g><line x1={tx(months)} y1={ty(bE)} x2={tx(months)} y2={ty(Math.max(0,bN))} stroke={C.buy} strokeWidth={1.5} strokeDasharray="3,3"/><circle cx={tx(months)} cy={ty(Math.max(0,bN))} r={3.5} fill={C.buy} stroke="var(--bg)" strokeWidth={1.5}/><text x={tx(months)-6} y={(ty(bE)+ty(Math.max(0,bN)))/2+3} textAnchor="end" fontSize={7} fill={C.buy} fontFamily="var(--mo)" fontWeight="600">−{fmtS(sA)}</text></g>)}<circle cx={tx(months)} cy={ty(bE)} r={3} fill={showR?`${C.buy}88`:C.buy} stroke="var(--bg)" strokeWidth={1.5}/><circle cx={tx(months)} cy={ty(uD[months])} r={3} fill={C.uber} stroke="var(--bg)" strokeWidth={1.5}/><circle cx={tx(months)} cy={ty(rD[months])} r={3} fill={C.rent} stroke="var(--bg)" strokeWidth={1.5}/></svg>);}
 function SB({best,others,years}){const mo=years*12;return(<div style={{borderRadius:8,border:"1px solid var(--l)",overflow:"hidden"}}><div style={{padding:"10px 16px",background:`${best.color}0a`,borderBottom:"1px solid var(--l)"}}><span style={{fontSize:11,fontWeight:700,color:best.color}}>Economia escolhendo {best.label}</span></div>{others.map(s=>(<div key={s.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--l)"}}><span style={{fontSize:12,fontWeight:600,color:"var(--d)"}}>vs {s.label}</span><div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:700,color:best.color,fontFamily:"var(--mo)"}}>{fmt(s.diff)}</span><span style={{fontSize:10,color:"var(--d)",marginLeft:6}}>({fmt(s.diff/mo)}/mês)</span></div></div>))}</div>);}
-function FD({carP,dp,fin,inst,fMo,tP,years}){const int=tP-fin;const ok=fMo<=years*12;const rem=Math.max(0,fMo-years*12);return(<div style={{background:"var(--f)",borderRadius:8,padding:"14px 16px",marginTop:12}}><div style={{fontSize:10,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Financiamento</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,fontSize:11}}>{[["Valor veículo",fmt(carP)],["Entrada",fmt(dp)],["Financiado",fmt(fin)],["Parcela",fmt(inst)],["Total pago",fmt(tP)],["Juros total",fmt(int),"#c4432b"]].map(([l,v,c],i)=>(<div key={i}><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",marginBottom:2}}>{l}</div><div style={{fontWeight:700,fontFamily:"var(--mo)",color:c||"var(--t)"}}>{v}</div></div>))}</div><div style={{marginTop:10,fontSize:11,fontWeight:600,color:ok?"#1a7f5a":"#9a6700",padding:"6px 10px",borderRadius:5,background:ok?"#ddf4e7":"#fff3cd"}}>{ok?`Quitado em ${fMo} meses — sem saldo residual`:`Excede horizonte — restam ${rem} parcelas`}</div></div>);}
+function FD({carP,dp,fin,inst,fMo,tP,years,mob}){const int=tP-fin;const ok=fMo<=years*12;const rem=Math.max(0,fMo-years*12);return(<div style={{background:"var(--f)",borderRadius:8,padding:"14px 16px",marginTop:12}}><div style={{fontSize:10,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Financiamento</div><div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"1fr 1fr 1fr",gap:10,fontSize:11}}>{[["Valor veículo",fmt(carP)],["Entrada",fmt(dp)],["Financiado",fmt(fin)],["Parcela",fmt(inst)],["Total pago",fmt(tP)],["Juros total",fmt(int),"#c4432b"]].map(([l,v,c],i)=>(<div key={i}><div style={{fontSize:9,fontWeight:600,color:"var(--d)",textTransform:"uppercase",marginBottom:2}}>{l}</div><div style={{fontWeight:700,fontFamily:"var(--mo)",color:c||"var(--t)",fontSize:mob?11:11}}>{v}</div></div>))}</div><div style={{marginTop:10,fontSize:11,fontWeight:600,color:ok?"#1a7f5a":"#9a6700",padding:"6px 10px",borderRadius:5,background:ok?"#ddf4e7":"#fff3cd"}}>{ok?`Quitado em ${fMo} meses — sem saldo residual`:`Excede horizonte — restam ${rem} parcelas`}</div></div>);}
 
 const CO={buy:"#1e3f6e",uber:"#2d3139",rent:"#c2710c"};
 
 /* ═══ APP ═══ */
 function App(){
+  const mob=useIsMobile();
   const [years,sY]=useState(5);const M=years*12;const [showR,sSR]=useState(true);const [rPct,sRP]=useState(100);
   const [uDay,sUD]=useState(60);const [uDays,sUDs]=useState(7);
   const [carP,sCP]=useState(80000);const [dp,sDP]=useState(0);const [sv,sSV]=useState(20000);
@@ -234,7 +236,7 @@ function App(){
   const bd=[{label:"Comprar",value:bC,color:CO.buy,best:bC===b3},{label:"Uber",value:res.uber.tot,color:CO.uber,best:res.uber.tot===b3},{label:"Alugar",value:res.rent.tot,color:CO.rent,best:res.rent.tot===b3}];
 
   return(
-    <div style={{"--s":"'Inter',-apple-system,sans-serif","--mo":"'JetBrains Mono','SF Mono',monospace","--bg":"#fafbfc","--c":"#fff","--f":"#f4f5f7","--l":"#e1e4e8","--t":"#1f2328","--d":"#6e7781","--a":"#1e3f6e",fontFamily:"var(--s)",background:"var(--bg)",color:"var(--t)",minHeight:"100vh",padding:"24px 16px"}}>
+    <div style={{"--s":"'Inter',-apple-system,sans-serif","--mo":"'JetBrains Mono','SF Mono',monospace","--bg":"#fafbfc","--c":"#fff","--f":"#f4f5f7","--l":"#e1e4e8","--t":"#1f2328","--d":"#6e7781","--a":"#1e3f6e",fontFamily:"var(--s)",background:"var(--bg)",color:"var(--t)",minHeight:"100vh",padding:mob?"16px 10px":"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <div style={{maxWidth:720,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:28}}>
@@ -251,11 +253,11 @@ function App(){
             </div>
           </Sec>
           <Sec title="Uber / App de transporte" color={CO.uber}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><Fd label="Gasto médio por dia" value={uDay} onChange={sUD}/><Fd label="Dias por semana" value={uDays} onChange={sUDs} prefix="" suffix="dias" min={1} max={7}/></div>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:12}}><Fd label="Gasto médio por dia" value={uDay} onChange={sUD}/><Fd label="Dias por semana" value={uDays} onChange={sUDs} prefix="" suffix="dias" min={1} max={7}/></div>
             <div style={{marginTop:10,padding:"6px 12px",background:"var(--f)",borderRadius:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"var(--d)"}}>Estimativa mensal</span><span style={{fontSize:12,fontWeight:700,fontFamily:"var(--mo)",color:CO.uber}}>{fmt(res.uber.mo)}</span></div>
           </Sec>
           <Sec title="Comprar veículo" color={CO.buy}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:12}}>
               <Fd label="Valor do veículo" value={carP} onChange={sCP}/><Fd label="Entrada (dinheiro)" value={dp} onChange={sDP}/>
               <Fd label="Venda do carro atual" value={sv} onChange={sSV}/><Fd label="Nº de parcelas" value={fMo} onChange={sFM} prefix="" suffix="meses"/>
               <Fd label="Juros mensal" value={fR} onChange={sFR} prefix="" suffix="% a.m." decimals={2}/><Fd label="IPVA (% valor venal)" value={ipva} onChange={sI} prefix="" suffix="% a.a." decimals={1}/>
@@ -263,29 +265,29 @@ function App(){
               <Fd label="Manutenção mensal" value={mnt} onChange={sM}/><Fd label="Estacionamento mensal" value={prk} onChange={sP}/>
               <Fd label="Depreciação anual" value={dep} onChange={sD} prefix="" suffix="% a.a."/>
             </div>
-            <FD carP={carP} dp={dp} fin={res.buy.fin} inst={res.buy.inst} fMo={fMo} tP={res.buy.tFP} years={years}/>
+            <FD carP={carP} dp={dp} fin={res.buy.fin} inst={res.buy.inst} fMo={fMo} tP={res.buy.tFP} years={years} mob={mob}/>
             <div style={{marginTop:10,padding:"8px 12px",background:"var(--f)",borderRadius:6,display:"flex",flexWrap:"wrap",gap:14,fontSize:11,fontFamily:"var(--mo)",fontWeight:600}}>
               <span>IPVA 1º ano: <span style={{color:CO.buy}}>{fmt(res.buy.i1)}</span></span>
               <span>Valor venal {years}a: <span style={{color:CO.buy}}>{fmt(res.buy.resid)}</span></span>
             </div>
           </Sec>
           <Sec title="Aluguel / Assinatura de veículo" color={CO.rent}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><Fd label="Mensalidade" value={rMo} onChange={sRM}/><Fd label="Gasolina mensal" value={rG} onChange={sRG}/><Fd label="Seguro extra (mensal)" value={rI} onChange={sRI}/></div>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr 1fr",gap:12}}><Fd label="Mensalidade" value={rMo} onChange={sRM}/><Fd label="Gasolina mensal" value={rG} onChange={sRG}/><Fd label="Seguro extra (mensal)" value={rI} onChange={sRI}/></div>
             <div style={{marginTop:10,padding:"6px 12px",background:"var(--f)",borderRadius:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"var(--d)"}}>Custo mensal total</span><span style={{fontSize:12,fontWeight:700,fontFamily:"var(--mo)",color:CO.rent}}>{fmt(res.rent.mo)}</span></div>
           </Sec>
         </div>
         {/* Results */}
-        <div style={{background:"var(--c)",borderRadius:12,border:"1px solid var(--l)",padding:"24px 20px"}}>
+        <div style={{background:"var(--c)",borderRadius:12,border:"1px solid var(--l)",padding:mob?"18px 14px":"24px 20px"}}>
           <h2 style={{fontSize:16,fontWeight:800,marginBottom:4,textAlign:"center",letterSpacing:"-0.02em"}}>Resultado — {years} {years===1?"ano":"anos"}</h2>
           <p style={{fontSize:11,color:"var(--d)",textAlign:"center",margin:"0 0 16px"}}>{M} meses</p>
           <div style={{background:"var(--f)",borderRadius:8,padding:"14px 16px",marginBottom:18}}>
             <Tg label="Considerar revenda do veículo ao final" hint={showR?`Subtrai ${fmt(res.buy.sA)} (${rPct}% do valor venal depreciado)`:"Comparação usa apenas o desembolso bruto"} checked={showR} onChange={sSR}/>
-            {showR&&(<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--l)"}}><Sli label="Percentual de realização na revenda" value={rPct} onChange={sRP} min={50} max={100} step={5}/><div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:10,color:"var(--d)"}}><span>Valor venal em {years}a: {fmt(res.buy.resid)}</span><span>Revenda: <strong style={{color:CO.buy}}>{fmt(res.buy.sA)}</strong></span></div></div>)}
+            {showR&&(<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--l)"}}><Sli label="Percentual de realização na revenda" value={rPct} onChange={sRP} min={50} max={100} step={5}/><div style={{display:"flex",flexDirection:mob?"column":"row",justifyContent:"space-between",marginTop:8,fontSize:10,color:"var(--d)",gap:mob?4:0}}><span>Valor venal em {years}a: {fmt(res.buy.resid)}</span><span>Revenda: <strong style={{color:CO.buy}}>{fmt(res.buy.sA)}</strong></span></div></div>)}
           </div>
           <div style={{display:"grid",gap:10,marginBottom:18}}>
-            <RC label="Comprar Veículo" monthly={res.buy.mo} gross={res.buy.gr} net={res.buy.nt} resale={res.buy.sA} showR={showR} color={CO.buy} isBest={bC===b3} diff={bC-b3} years={years}/>
-            <RC label="Uber / App" monthly={res.uber.mo} gross={res.uber.tot} net={res.uber.tot} resale={0} showR={false} color={CO.uber} isBest={res.uber.tot===b3} diff={res.uber.tot-b3} years={years}/>
-            <RC label="Aluguel / Assinatura" monthly={res.rent.mo} gross={res.rent.tot} net={res.rent.tot} resale={0} showR={false} color={CO.rent} isBest={res.rent.tot===b3} diff={res.rent.tot-b3} years={years}/>
+            <RC label="Comprar Veículo" monthly={res.buy.mo} gross={res.buy.gr} net={res.buy.nt} resale={res.buy.sA} showR={showR} color={CO.buy} isBest={bC===b3} diff={bC-b3} years={years} mob={mob}/>
+            <RC label="Uber / App" monthly={res.uber.mo} gross={res.uber.tot} net={res.uber.tot} resale={0} showR={false} color={CO.uber} isBest={res.uber.tot===b3} diff={res.uber.tot-b3} years={years} mob={mob}/>
+            <RC label="Aluguel / Assinatura" monthly={res.rent.mo} gross={res.rent.tot} net={res.rent.tot} resale={0} showR={false} color={CO.rent} isBest={res.rent.tot===b3} diff={res.rent.tot-b3} years={years} mob={mob}/>
           </div>
           <SB best={bO} others={oth} years={years}/>
           <div style={{marginTop:18,borderRadius:8,border:"1px solid var(--l)",padding:"16px 18px"}}><h3 style={{fontSize:11,fontWeight:700,color:"var(--d)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2,textAlign:"center"}}>Comparativo em {years}a</h3><BC data={bd} subtitle={showR?"Custo líquido (desembolso − revenda)":"Desembolso bruto (sem revenda)"}/></div>
